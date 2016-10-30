@@ -1,0 +1,159 @@
+---
+title: "R_Week_9_Hmw_607_Web_APIs_Daniel_Thonn"
+output: html_document
+course: R-607 CUNY MSDA program
+
+---
+
+** Assignment 607_Homework: R_Week_9d_Hmw_607_Web_APIs_Daniel_Thonn **
+
+Summary of Assignment
+This assignment involves using Web APIs to obtain information from the New York Times
+
+This Assignment requires the following:
+
+1). R-Studio
+
+The following R-packages are used:
+1.tidyr
+2.dplyr
+3.ggplot2 
+4.httr
+5.tidyjason
+6.data.table
+
+Steps to reproduce:
+1). run the R-Studio file: R_607_Week_9d_Hmk_Web_APIs_Daniel_Thonn.Rmd
+
+
+Setting up and Preparing the Environment
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load the libraries needed
+
+```{r, echo=TRUE}
+
+
+#library(stringr)
+library(tidyr)
+
+#install.packages("dplyr")
+library(dplyr)
+
+#install.packages("ggplot2")
+library(ggplot2)
+
+#install.packages("httr")
+library(httr)
+
+#install.packages("tidyjson")
+library(tidyjson)
+
+#install.packages("data.table")
+library(data.table)
+
+
+```
+
+Obtain the Top Stories information from the New York Times API
+
+```{r, echo=TRUE}
+
+
+# Store the api obtained from the New York Times developer website
+nyt_api_key_1 <- "7ab87a92a91243eab8de8d7a867f1fa2"
+
+
+# create the url interface
+url_1 <- paste0("https://api.nytimes.com/svc/topstories/v2/home.json?")
+url      <- paste0(url_1,"&api-key=", nyt_api_key_1)
+
+
+# Obtain the results using the the API
+contents_1 <- GET(url = url)
+contents_1
+
+# store the json information
+json_1 <- httr::content(contents_1, type = "text", encoding = "UTF-8")
+json_1
+
+# check status
+status <- 
+   json_1 %>% 
+   enter_object("status") %>%
+   append_values_string("status") %>% 
+   select(status)
+status
+
+
+nyt_top_stories_json <- json_1 %>% as.tbl_json
+
+nyt_top_stories_json
+
+str(nyt_top_stories_json)
+
+head(nyt_top_stories_json)
+
+
+results2 <-
+       nyt_top_stories_json %>%
+       enter_object("results") %>%
+       gather_array %>%
+             spread_values(
+            section = jstring("section") ,
+            subsection = jstring("subsection") ,
+            title = jstring("title"),
+            abstract = jstring("abstract"),
+            by = jstring("byline"),
+            url = jstring("url"),
+            item_type = jstring("item_type"),
+            updated_date = jstring("updated_date"),
+            created_date = jstring("created_date"),
+            published_date = jstring("published_date")
+        )
+
+results3 <- as.data.frame(results2)
+
+str(results3)
+
+head(results3)
+
+names(results3)
+results3$section
+
+
+```
+
+Graph the Top Story sections by subect in the Top Stories dataframe
+
+
+```{r, echo=TRUE}
+#count of section subjects
+sections2<-select(results3,section)
+
+sections3<-data.frame(table(sections2$section))
+
+names(sections3)<-c("Var1","Freq")
+head(arrange(sections3,desc(Freq)), n=10)
+names(sections3)[1] <- "Section_Subject"
+names(sections3)
+
+
+
+qplot(data = subset(sections3, Freq>1), x = reorder(Section_Subject, -Freq), y=Freq, xlab="Section_Subject", ylab="Frequency", main = "Section_Subject by Frequency", size=I(5)) +
+      theme(text = element_text(),
+        axis.text.x = element_text(angle=90, vjust=1)) 
+
+
+```
+
+Conclusion: The Top Stories information was downloaded successfully from the New York Times developer API site.
+
+The plot shows the numbers of articles by section subject.  This shows that articles by subject US was the largest number of stores, followed in order by Business Day, Opinion, Movies, and World at the time of this download.
+
+
+
+**END**
